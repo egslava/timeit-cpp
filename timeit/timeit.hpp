@@ -4,7 +4,8 @@
 #include <thread>  // we need it for this_thread::sleep_for to warm up the code
 #include <sstream>
 #include <iomanip>
-#include <assert.h> 
+#include <assert.h>
+#include <iostream>
 
 #ifdef NDEBUG
 #define __timeit__noexcept noexcept
@@ -12,7 +13,7 @@
 #define __timeit__noexcept
 #endif
 
-namespace timeit {
+namespace _timeit {
 
     using namespace std;
 
@@ -31,7 +32,7 @@ namespace timeit {
     using RepType = long;
 
     template <typename Collection>
-    string join(const Collection &collection, const string &delimiter = ", ") {
+    string _join(const Collection &collection, const string &delimiter = ", ") {
         ostringstream out;
         out << collection[0];
         for (const auto &data : collection) {
@@ -41,7 +42,7 @@ namespace timeit {
         return out.str();
     }
 
-    time_t ns(const timer::duration &duration) {
+    time_t _ns(const timer::duration &duration) {
         return duration_cast<nanoseconds>(duration).count();
     };
 
@@ -53,7 +54,7 @@ namespace timeit {
             code();
         }
         auto end = timer::now();
-        return ns(end - start);
+        return _ns(end - start);
     }
 
     template<typename T>
@@ -176,6 +177,7 @@ namespace timeit {
 
         friend ostream& operator << (ostream &out, const Stats &stats) {
             out << static_cast<string>(stats);
+            return out;
         }
     };
 
@@ -189,7 +191,7 @@ namespace timeit {
         for (int i = 0; i < repetitions; i++) {
             stats << time(code, iterations);
         }
-        //cout << (string)stats << endl;
+        cout << (string)stats << endl;
         return stats;
     }
 
@@ -198,10 +200,10 @@ namespace timeit {
         time_t _granularity() {
             auto start = timer::now();
             auto end = timer::now();
-            while (ns(end - start) <= 0) {
+            while (_ns(end - start) <= 0) {
                 end = timer::now();
             };
-            return ns(end - start);
+            return _ns(end - start);
         }
 
         /** Get the minimal one between 50 calls. Just for reliablitity. */
@@ -325,3 +327,5 @@ namespace timeit {
         int _run_tests = run();
     }
 }
+
+using _timeit::timeit;
