@@ -2,6 +2,7 @@
 Python's `timeit` module, rewritten C++11. Thus, it's a simple, header-only benchmarking library for quick experiments. Probably, not only :)
 
 # Usage
+Download [timeit.hpp](timeit/timeit.hpp).
 The minimal example is:
 ```cpp
 #include "timeit.hpp"
