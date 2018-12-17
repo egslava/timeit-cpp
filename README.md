@@ -30,7 +30,7 @@ cout << "Performance: " << fixed << setprecision(2) << (results1.fast / results2
 ```
 Accuracy: 97.8629%
 Performance: 204.77%
-```
+
 
 Please, have a look at [the source file](example2_manual_output/example2_manual_output.cpp) for the exact source code.
 
