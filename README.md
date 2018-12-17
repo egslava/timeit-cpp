@@ -3,7 +3,7 @@ Python's `timeit` module, rewritten C++11. Thus, it's a simple, header-only benc
 
 # Usage
 Download [timeit.hpp](timeit/timeit.hpp).
-The minimal example is:
+The minimal [example](example1_simple/example1_simple.cpp) is:
 ```cpp
 #include "timeit.hpp"
 
@@ -13,25 +13,25 @@ void main() {
     });
 }
 ```
-`min: 86.412ns, mean: 86.753ns(mean +- std.dev.of 3 runs, 10000 loops each)` 
+`min: 85.780ns, mean: 87.365ns (3 runs, 10000 loops each)` 
 
-You can also access the results:
+You can also access the results and disable the default output.:
 ```cpp
-_timeit::Stats results = timeit([] { pow(2, 4); });
+_timeit::autoprint = false;
+long double exact = 0, approx = 0;
+_timeit::Stats results1 = timeit([&] { exact += distance(10., 100.); }),
+    results2 = timeit([&] { approx += approx_distance(10., 100.); });
 
-cout << results << endl;
-cout << "avg: " << results.avg << endl;
-cout << "min: " << results.min_result << endl;
+cout << "Accuracy: " << (1. - abs((exact - approx) / exact)) * 100. << "%" << endl;
+cout << "Performance: " << fixed << setprecision(2) << (results1.fast / results2.fast)*100. << "%" << endl;
 ```
 
 ```
-min: 86.864ns, mean: 102.640ns(mean +- std.dev.of 3 runs, 10000 loops each)
-
-min: 86.864ns, mean: 102.640ns(mean +- std.dev.of 3 runs, 10000 loops each)
-
-avg: 307.921
-min: 86.864
+Accuracy: 97.8629%
+Performance: 204.77%
 ```
+
+Please, have a look at [the source file](example2_manual_output/example2_manual_output.cpp) for the exact source code.
 
 # Features
 1. Checks the granularity/resolution of the used timer and guesses the number of iterations based on that. So, it shouldn't use too much or too small amount of time.
