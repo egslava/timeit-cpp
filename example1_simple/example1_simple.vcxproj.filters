@@ -21,15 +21,12 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="timeit.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="main_stub.cpp">
+    <ClCompile Include="example1_simple.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -14,6 +14,7 @@
 #endif
 
 namespace _timeit {
+    bool autoprint = true;
 
     using namespace std;
 
@@ -152,17 +153,17 @@ namespace _timeit {
         vector<long double> _repetitions_ns;
 
         // output stats
-        long double avg = 0;
-        long double min_result = -1;
+        long double mean = 0;
+        long double fast = -1;
 
         Stats& operator << (time_t nanos) {
             long double _ns_per_repetition = static_cast<long double>(nanos) / static_cast<long double>(_n_iterations);
             _repetitions_ns.push_back(_ns_per_repetition);
 
-            avg += _ns_per_repetition;
+            mean += _ns_per_repetition;
 
-            if (_ns_per_repetition < min_result || min_result < 0) {
-                min_result = _ns_per_repetition;
+            if (_ns_per_repetition < fast || fast < 0) {
+                fast = _ns_per_repetition;
             }
 
             return *this;
@@ -171,7 +172,7 @@ namespace _timeit {
         operator string () const {
             stringstream s;
             s << fixed << setprecision(2);
-            s << "min: " << DecomposedTime(min_result) << ", mean: " << DecomposedTime(avg / _n_repetitions) << "(mean +- std.dev.of " << _n_repetitions << " runs, " << _n_iterations << " loops each)" << endl;
+            s << "min: " << DecomposedTime(fast) << ", mean: " << DecomposedTime(mean / _n_repetitions) << " (" << _n_repetitions << " runs, " << _n_iterations << " loops each)";
             return s.str();
         }
 
@@ -191,7 +192,10 @@ namespace _timeit {
         for (int i = 0; i < repetitions; i++) {
             stats << time(code, iterations);
         }
-        cout << (string)stats << endl;
+
+        if (autoprint) {
+            cout << (string)stats << endl;
+        }
         return stats;
     }
 
