@@ -26,11 +26,18 @@ _timeit::Stats results2 = timeit([&] { approx += approx_distance(10., 100.); });
 cout << "Accuracy: " << (1. - abs((exact - approx) / exact)) * 100. << "%" << endl;
 cout << "Performance: " << fixed << setprecision(2) << (results1.fast / results2.fast)*100. << "%" << endl;
 ```
+<<<<<<< HEAD
 
+=======
+Accuracy: 97.8629%
+Performance: 204.77%
+>>>>>>> 24b70002aa0aeab01965784e2d4a5ee46c0d69cf
 ```
 Accuracy: 97.8629%
 Performance: 204.77%
 ```
+
+Please, have a look at [the source file](example2_manual_output/example2_manual_output.cpp) for the exact source code.
 
 Please, have a look at [the source file](example2_manual_output/example2_manual_output.cpp) for the exact source code.
 
