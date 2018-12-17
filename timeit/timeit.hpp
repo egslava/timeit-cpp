@@ -47,6 +47,50 @@ namespace _timeit {
         return duration_cast<nanoseconds>(duration).count();
     };
 
+    namespace _granularity {
+        /** A minimum measurable time */
+        time_t _granularity() {
+            auto start = timer::now();
+            auto end = timer::now();
+            while (_ns(end - start) <= 0) {
+                end = timer::now();
+            };
+            return _ns(end - start);
+        }
+
+        /** Get the minimal one between 50 calls. Just for reliablitity. */
+        time_t _min_of_50_times() {
+            time_t min_value = _granularity();
+            for (int i = 0; i < 49; i++) {
+                time_t value = _granularity();
+                if (value < min_value) {
+                    min_value = value;
+                }
+            }
+            return min_value;
+        }
+
+        /** "memoized"/cached lazy-initialized value */
+        time_t get() {
+            static time_t _cache = -1;
+
+            if (_cache != -1) {
+                return _cache;
+            }
+
+            // believe it or not, but we have to 'warm up' the program this way, even if we run
+            // granularity code about 50 times!!!
+            // It seems, that, initially, the app is not in CPU cache and it runs the 
+            // next code ~10-15 times slower, so I got the wrong granularity.
+            // For some reasons, it's especially noticable in 'debug' configuration (in MSVS).
+            // on my machine (Win 8 + MSVS) even 1 nanosecond looks ok, but I leave 1us just in case.
+            this_thread::sleep_for(std::chrono::microseconds(1));
+
+            _cache = _min_of_50_times();
+            return _cache;
+        }
+    }
+
     template<typename T>
     time_t time(T code, IterType n_iterations = 0) {
 
@@ -199,50 +243,7 @@ namespace _timeit {
         return stats;
     }
 
-    namespace _granularity {
-        /** A minimum measurable time */
-        time_t _granularity() {
-            auto start = timer::now();
-            auto end = timer::now();
-            while (_ns(end - start) <= 0) {
-                end = timer::now();
-            };
-            return _ns(end - start);
-        }
-
-        /** Get the minimal one between 50 calls. Just for reliablitity. */
-        time_t _min_of_50_times() {
-            time_t min_value = _granularity();
-            for (int i = 0; i < 49; i++) {
-                time_t value = _granularity();
-                if (value < min_value) {
-                    min_value = value;
-                }
-            }
-            return min_value;
-        }
-
-        /** "memoized"/cached lazy-initialized value */
-        time_t get() {
-            static time_t _cache = -1;
-
-            if (_cache != -1) {
-                return _cache;
-            }
-
-            // believe it or not, but we have to 'warm up' the program this way, even if we run
-            // granularity code about 50 times!!!
-            // It seems, that, initially, the app is not in CPU cache and it runs the 
-            // next code ~10-15 times slower, so I got the wrong granularity.
-            // For some reasons, it's especially noticable in 'debug' configuration (in MSVS).
-            // on my machine (Win 8 + MSVS) even 1 nanosecond looks ok, but I leave 1us just in case.
-            this_thread::sleep_for(std::chrono::microseconds(1));
-
-            _cache = _min_of_50_times();
-            return _cache;
-        }
-    }
-
+   
     namespace _tests {
         void case1_granularity() {
             assert(_granularity::get() > 0);
