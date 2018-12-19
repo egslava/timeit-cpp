@@ -28,6 +28,6 @@ void main() {
         results2 = timeit([&] { approx += approx_distance(10., 100.); });
 
     cout << "Accuracy: " << (1. - abs((exact - approx) / exact)) * 100. << "%" << endl;
-    cout << "Performance: " << fixed << setprecision(2) << (results1.fast / results2.fast)*100. << "%" << endl;
+    cout << "Performance: " << fixed << setprecision(2) << (results1.min / results2.min)*100. << "%" << endl;
     getchar();
 }

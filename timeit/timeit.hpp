@@ -183,25 +183,46 @@ namespace _timeit {
 
         Stats(IterType iterations, RepType repetitions) :
             _n_iterations(iterations),
-            _n_repetitions(repetitions),
-            _repetitions_ns(_n_repetitions)
+            _n_repetitions(repetitions)
         {};
         IterType    _n_iterations;
         RepType     _n_repetitions;
         vector<long double> _repetitions_ns;
 
         // output stats
-        long double mean = 0;
-        long double fast = -1;
+        long double sum = 0;
+        long double min = -1;
 
-        Stats& operator << (time_t nanos) {
-            long double _ns_per_repetition = static_cast<long double>(nanos) / static_cast<long double>(_n_iterations);
+        long double mean() const noexcept {
+            return this->sum / this->_n_repetitions;
+        }
+
+        /** Calculates standard deviation (https://en.wikipedia.org/wiki/Standard_deviation) */
+        long double std() const noexcept {
+            // the function should be used only when all the results are known
+            assert(this->_n_repetitions == this->_repetitions_ns.size());
+
+            long double numerator = { 0 };
+            long double x = { this->mean() };
+
+            for (auto &x_i : this->_repetitions_ns) {
+                numerator += powl(x_i - x, 2.l);
+            }
+
+            // wtf n_repetitions if we can just _repetions_ns.size()? 
+            // Answer: because _repetitions_ns.size() gives current amount of repetitions
+            // and n_repetitions - planned amount
+            return sqrtl(numerator / (_n_repetitions - 1));
+        }
+
+        Stats& operator << (time_t nanos_per_repetition) {
+            long double _ns_per_repetition = static_cast<long double>(nanos_per_repetition) / static_cast<long double>(_n_iterations);
             _repetitions_ns.push_back(_ns_per_repetition);
 
-            mean += _ns_per_repetition;
+            sum += _ns_per_repetition;
 
-            if (_ns_per_repetition < fast || fast < 0) {
-                fast = _ns_per_repetition;
+            if (_ns_per_repetition < min || min < 0) {
+                min = _ns_per_repetition;
             }
 
             return *this;
@@ -210,7 +231,7 @@ namespace _timeit {
         operator string () const {
             stringstream s;
             s << fixed << setprecision(2);
-            s << "min: " << DecomposedTime(fast) << ", mean: " << DecomposedTime(mean / _n_repetitions) << " (" << _n_repetitions << " runs, " << _n_iterations << " loops each)";
+            s << "min: " << DecomposedTime(min) << ", mean: " << DecomposedTime(mean() ) << "+-" << DecomposedTime(std()) << " (" << _n_repetitions << " runs, " << _n_iterations << " loops each)";
             return s.str();
         }
 
