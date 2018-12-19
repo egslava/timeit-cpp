@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "../timeit/timeit.hpp"
 
 void main(int argc, char** argv) {

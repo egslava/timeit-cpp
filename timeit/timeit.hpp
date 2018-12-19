@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <vector>
 #include <chrono>
 #include <thread>  // we need it for this_thread::sleep_for to warm up the code
