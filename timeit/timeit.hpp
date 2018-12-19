@@ -7,12 +7,6 @@
 #include <assert.h>
 #include <iostream>
 
-#ifdef NDEBUG
-#define _timeit_noexcept noexcept
-#else
-#define _timeit_noexcept
-#endif
-
 namespace _timeit {
     bool autoprint = true;
 
@@ -126,7 +120,7 @@ namespace _timeit {
             We can't count picoseconds during one year in long-long: we need 64.77 bits for that.
             long-double just looses precision, but long-long just overflows and looses the data completely.
             For sure, I don't believe, someone will run this program for a year, but... */
-            DecomposedTime(long double nanoseconds) _timeit_noexcept:
+            DecomposedTime(long double nanoseconds):
             ps{ static_cast<int>(fmodl(nanoseconds * 1000.L,  1000.L)) },
                 ns{ static_cast<int>(fmodl(nanoseconds , 1000.L)) },
                 us{ static_cast<int>(fmodl(nanoseconds / 1000.L, 1000.L)) },
