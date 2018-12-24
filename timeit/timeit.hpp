@@ -6,11 +6,14 @@
 #include <iomanip>
 #include <assert.h>
 #include <iostream>
+#include <algorithm>
+#include <valarray>  // see _fill_cache
+#include <string>
 
 namespace _timeit {
     bool autoprint = true;
+    std::size_t cachesize = 1 * 1024;  // number of elements to use to 
 
-    using namespace std;
 
     //namespace timeit {
     //#define timeit(code) {     \
@@ -20,14 +23,14 @@ namespace _timeit {
 //    }
 //}
 
-
-    using namespace chrono;
-    using timer = high_resolution_clock;
+    using timer = std::chrono::high_resolution_clock;
     using IterType = long long;
     using RepType = long;
 
     template <typename Collection>
-    string _join(const Collection &collection, const string &delimiter = ", ") {
+    std::string _join(const Collection &collection, const std::string &delimiter = ", ") {
+        using namespace std;
+
         ostringstream out;
         out << collection[0];
         for (const auto &data : collection) {
@@ -37,9 +40,37 @@ namespace _timeit {
         return out.str();
     }
 
+
     time_t _ns(const timer::duration &duration) {
+        using namespace std;
+        using namespace chrono;
+
         return duration_cast<nanoseconds>(duration).count();
     };
+
+
+    /**
+    The purpose of this function is to fullfill a CPU's cache with some bullshit.
+    It's supposed to be used with 'cold start' benchmarks.
+
+    In the beginning, I was thinking of implementation on macroses + inline assembler.
+    So the plan was to use 'nop' instruction and with help of macroses, replicate it 256*1024 times.
+    But, in this case:
+    1. The debugger gets _really slow_.
+    2. The inline assembler is not supported on x64-systems (in MS VS).
+    3. The compile time also increases.
+
+    So, instead, I just create an array of CACHE_SIZE elements and iterate over it.
+    */
+    void _fill_cache() {
+        using namespace std;
+        using namespace chrono;
+
+        valarray<int> ints(cachesize);
+        ints[rand() % (cachesize)] = 1;     // avoiding optimizing it out
+        volatile auto result = ints.sum();  // again, don't optimize out
+    }
+
 
     namespace _granularity {
         /** A minimum measurable time */
@@ -78,7 +109,7 @@ namespace _timeit {
             // next code ~10-15 times slower, so I got the wrong granularity.
             // For some reasons, it's especially noticable in 'debug' configuration (in MSVS).
             // on my machine (Win 8 + MSVS) even 1 nanosecond looks ok, but I leave 1us just in case.
-            this_thread::sleep_for(std::chrono::microseconds(1));
+            std::this_thread::sleep_for(std::chrono::microseconds(1));
 
             _cache = _min_of_50_times();
             return _cache;
@@ -96,6 +127,29 @@ namespace _timeit {
         return _ns(end - start);
     }
 
+    /** 
+    This function returns the optimal amount of iterations needed to perform benchmarks.
+    - We can't run a code just once - the timer doesn't have enough resolution.
+    - We can't run too many times (although Python's timeit does it) - because it gets too slow.
+
+    Consider two time scales (in nanoseconds):
+
+
+    Results from timer                                 0      300     600     900     1200    1500     1800    
+    (if we constantly ask the timer about it)          ├───────┼───────┼───────┼───────┼───────┼────────┤
+    The distance between two values I call                300     300     300     300     300     300     
+    "timer resolution". Here - 300ns
+    
+
+    The actual code runtime (6 iterations):            0    200   400   600   800   1000  1200  
+                                                       └─────┴─────┴─────┴─────┴─────┴─────┘
+                                                         200   200   200   200   200   200
+
+    
+    0                               200                                 400                                 600                                 800   
+    └────────────────────────────────┴───────────┬───────────────────────┴───────────────────────┬───────────┴───────────────────────────────────┼─────────────────────────────
+    0                                           300                                             600                                             600
+    */
     template<typename T>
     IterType num_best_iters(T code, IterType iterations) {
         if (iterations <= 0) {
@@ -109,6 +163,7 @@ namespace _timeit {
         }
         return iterations;
     }
+
 
     struct Stats {
         struct DecomposedTime {
@@ -133,7 +188,9 @@ namespace _timeit {
                 assert(nanoseconds > 0);
             }
 
-            operator string() const {
+            operator std::string() const {
+                using namespace std;
+
                 // != 0 is used instead of > 0, to ensure that I don't have negatives numbers. 
                 // That's also the reason why I don't use unsigned types here
                 ostringstream out;
@@ -167,15 +224,15 @@ namespace _timeit {
                 return out.str();
             }
 
-            friend ostream& operator << (ostream &out, const DecomposedTime &time) {
-                out << static_cast<string>(time);
+            friend std::ostream& operator << (std::ostream &out, const DecomposedTime &time) {
+                out << static_cast<std::string>(time);
                 return out;
             }
 
         private:
             /** _fmt(out, 1, 23, "ms") -> "1.023ms" */
-            static string _fmt(ostringstream &out, time_t integral, time_t fractional, const string &unit) {
-                out << integral << '.' << setfill('0') << setw(3) << fractional << unit;
+            static std::string _fmt(std::ostringstream &out, time_t integral, time_t fractional, const std::string &unit) {
+                out << integral << '.' << std::setfill('0') << std::setw(3) << fractional << unit;
                 return out.str();
             }
         };
@@ -187,7 +244,7 @@ namespace _timeit {
         {};
         IterType    _n_iterations;
         RepType     _n_repetitions;
-        vector<long double> _repetitions_ns;
+        std::vector<long double> _repetitions_ns;
 
         // output stats
         long double sum = 0;
@@ -197,15 +254,18 @@ namespace _timeit {
             return this->sum / this->_n_repetitions;
         }
 
+        void guard_all_results_are_known() const noexcept {
+            assert(this->_n_repetitions == this->_repetitions_ns.size());
+        }
+
         /** Calculates standard deviation (https://en.wikipedia.org/wiki/Standard_deviation) */
         long double std() const noexcept {
-            // the function should be used only when all the results are known
-            assert(this->_n_repetitions == this->_repetitions_ns.size());
+            guard_all_results_are_known();
 
             long double numerator = { 0 };
             long double x = { this->mean() };
 
-            for (auto &x_i : this->_repetitions_ns) {
+            for (const auto &x_i : this->_repetitions_ns) {
                 numerator += powl(x_i - x, 2.l);
             }
 
@@ -213,6 +273,12 @@ namespace _timeit {
             // Answer: because _repetitions_ns.size() gives current amount of repetitions
             // and n_repetitions - planned amount
             return sqrtl(numerator / (_n_repetitions - 1));
+        }
+
+        long double max() const noexcept {
+            guard_all_results_are_known();
+            
+            return *max_element(_repetitions_ns.cbegin(), _repetitions_ns.cend());
         }
 
         Stats& operator << (time_t nanos_per_repetition) {
@@ -228,21 +294,25 @@ namespace _timeit {
             return *this;
         }
 
-        operator string () const {
+        operator std::string () const {
+            using namespace std;
+            
             stringstream s;
             s << fixed << setprecision(2);
-            s << "min: " << DecomposedTime(min) << ", mean: " << DecomposedTime(mean() ) << "+-" << DecomposedTime(std()) << " (" << _n_repetitions << " runs, " << _n_iterations << " loops each)";
+            s << "[" << DecomposedTime(min) << ",.., " << DecomposedTime(mean() ) << " " << char(241) << " "<< setw(5) << DecomposedTime(std()) << ",.., " << DecomposedTime(max()) <<  " ]" << " (" << _n_repetitions << " runs, " << _n_iterations << " loops each)";
             return s.str();
         }
 
-        friend ostream& operator << (ostream &out, const Stats &stats) {
-            out << static_cast<string>(stats);
+        friend std::ostream& operator << (std::ostream &out, const Stats &stats) {
+            out << static_cast<std::string>(stats);
             return out;
         }
     };
 
+
     template<class T>
-    Stats timeit(T code, int repetitions = 3, IterType iterations = 0) {
+    Stats timeit(T code, int repetitions = 30, IterType iterations = 0) {
+        using namespace std;
 
         iterations = num_best_iters(code, iterations);
 
@@ -265,6 +335,7 @@ namespace _timeit {
         }
 
         void case2_formatting() {
+            using namespace std;
             Stats::DecomposedTime time(0.001);
             assert(time.ps == 1);
             assert(time.ns == 0);
